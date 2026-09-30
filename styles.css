@@ -105,7 +105,7 @@ select.field-input{appearance:none;background-image:url("data:image/svg+xml;char
 .btn-secondary{padding:.5rem 1rem;font-size:.875rem;font-weight:500;color:#fff;background:var(--purple-2);border:0;border-radius:6px;cursor:pointer;transition:background .15s}
 .btn-secondary:hover{background:#4a2bb0}
 
-#error-box{background:#FDECEE;border-color:#e8a9b0;color:#8C2F39;font-weight:500}
+#error-box{background:#FDECEE;border-color:#e8a9b0;color:#8C2F39;font-weight:500;white-space:pre-line}
 
 /* ============ Horas extras dinámicas ============ */
 .he-entry{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;align-items:end;padding:.75rem;background:#fff;border:1px solid var(--line);border-radius:8px}

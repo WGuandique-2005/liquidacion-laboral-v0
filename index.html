@@ -70,7 +70,7 @@
     <p class="crumbs" data-no-print><a href="#">Inicio</a> &gt; <a href="#">Servicios</a> &gt; Calculadora de liquidación laboral</p>
     <div class="notice" data-no-print>Complete las seis secciones y presione «Calcular liquidación». El resultado es informativo y puede imprimirse o guardarse como PDF.</div>
 
-    <form id="calc-form" data-no-print>
+    <form id="calc-form" data-no-print novalidate>
 
       <div class="form-col">
       <!-- BLOQUE 1: DATOS BÁSICOS -->
@@ -388,7 +388,7 @@
       </section>
       </div>
 
-      <div id="error-box" class="hidden border rounded-md text-sm px-4 py-3" role="alert"></div>
+      <div id="error-box" class="hidden border rounded-md text-sm px-4 py-3" role="alert" aria-live="assertive"></div>
 
       <button type="submit" class="btn-primary">
         Calcular liquidación

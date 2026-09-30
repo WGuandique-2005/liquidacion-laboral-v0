@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Liquidación Laboral — El Salvador</title>
+  <meta name="description"
+    content="Calculadora automatizada de prestaciones económicas de fin de contrato, deducciones de ley y recargos por jornadas especiales, conforme al Código de Trabajo de El Salvador.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap"
+    rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: { DEFAULT: '#1F2A44', 700: '#243863' },
+            paper: '#F4F5F9',
+            line: '#DCDFE8',
+            seal: { DEFAULT: '#3B1E8F', dark: '#25005F' },
+            gold: '#A9782E',
+            rose: '#8C2F39',
+            slate2: '#5B6472'
+          },
+          fontFamily: {
+            serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+            sans: ['"IBM Plex Sans"', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="font-sans antialiased">
+
+  <a href="#calc-form" class="skip-link" data-no-print>Saltar al formulario</a>
+  <div class="topbar" data-no-print>
+    <div class="wrap topbar-in">
+      <div class="brand">
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="#9DB0F5" stroke-width="2" aria-hidden="true"><path d="M4 14 17 5l13 9M7 14v12M13 14v12M21 14v12M27 14v12M3 28h28"/></svg>
+        <div><b>República de El Salvador</b><small>Herramienta académica · Código de Trabajo</small></div>
+      </div>
+    </div>
+  </div>
+  <nav class="navbar" data-no-print aria-label="Secciones de la calculadora">
+    <div class="wrap nav-in">
+      <a href="#sec-datos">Datos</a><a href="#sec-comisiones">Comisiones</a><a href="#sec-causa">Causa</a>
+      <a href="#sec-jornadas">Jornadas</a><a href="#sec-vacaciones">Vacaciones</a><a href="#resultado">Resultado</a><a href="#metodologia">Metodología</a>
+    </div>
+  </nav>
+  <header class="hero" data-no-print>
+    <div class="wrap hero-in">
+      <div>
+        <h1>Calculadora de liquidación laboral</h1>
+        <p>Estima las prestaciones de fin de contrato, las deducciones de ley y el neto a pagar, conforme al Código de Trabajo de El Salvador.</p>
+      </div>
+      <svg viewBox="0 0 90 90" fill="none" stroke="#fff" stroke-width="3.5" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="84" height="84" rx="6"/><path d="M3 20h84"/><circle cx="12" cy="11.5" r="1.5" fill="#fff"/><circle cx="19" cy="11.5" r="1.5" fill="#fff"/><circle cx="26" cy="11.5" r="1.5" fill="#fff"/><rect x="24" y="28" width="42" height="52" rx="5"/><rect x="31" y="35" width="28" height="11" rx="3"/><path d="M32 55h6M44 55h6M56 55h4M32 65h6M44 65h6M32 74h6M44 74h6"/></svg>
+    </div>
+  </header>
+  <div class="wrap main">
+    <p class="crumbs" data-no-print><a href="#">Inicio</a> &gt; <a href="#">Servicios</a> &gt; Calculadora de liquidación laboral</p>
+    <div class="notice" data-no-print>Complete las cinco secciones y presione «Calcular liquidación». El resultado es informativo y puede imprimirse o guardarse como PDF.</div>
+
+    <form id="calc-form" data-no-print>
+
+      <div class="form-col">
+      <!-- BLOQUE 1: DATOS BÁSICOS Y ANTIGÜEDAD -->
+      <section class="card" id="sec-datos">
+        <h2 class="section-title">I. Datos básicos y antigüedad</h2>
+
+        <div class="fgrid mt-4">
+          <div>
+            <label for="nombreTrabajador" class="field-label">Persona trabajadora</label>
+            <input type="text" id="nombreTrabajador" placeholder="Nombre completo" class="field-input">
+          </div>
+          <div>
+            <label for="patrono" class="field-label">Patrono / Empresa</label>
+            <input type="text" id="patrono" placeholder="Razón social" class="field-input">
+          </div>
+        </div>
+
+        <div class="fgrid mt-4">
+          <div>
+            <label for="cargo" class="field-label">Cargo desempeñado</label>
+            <input type="text" id="cargo" placeholder="Ej. Trabajador" class="field-input">
+          </div>
+          <div>
+            <label for="fechaIngreso" class="field-label">Fecha de ingreso (*)</label>
+            <input type="date" id="fechaIngreso" class="field-input" required>
+            <p class="field-hint">La fecha de ingreso no puede ser posterior a hoy.</p>
+          </div>
+          <div>
+            <label for="fechaTerminacion" class="field-label">Fecha de terminación (*)</label>
+            <input type="date" id="fechaTerminacion" class="field-input" required>
+            <p class="field-hint" id="fecha-term-hint">La antigüedad se calcula automáticamente a partir de las fechas (incluyendo el último día laborado).</p>
+          </div>
+        </div>
+
+        <div class="fgrid fgrid--3 mt-4">
+          <div>
+            <label for="salario" class="field-label">Ingreso mensual (USD) (*)</label>
+            <div class="relative">
+              <span class="currency-prefix">$</span>
+              <input type="number" inputmode="decimal" id="salario" min="0" step="0.01" required placeholder="0.00"
+                class="field-input pl-7">
+            </div>
+          </div>
+          <div>
+            <label for="anios" class="field-label">Años laborados</label>
+            <input type="number" id="anios" min="0" step="1" readonly class="field-input" placeholder="—" tabindex="-1">
+            <p class="field-hint">Calculado automáticamente</p>
+          </div>
+          <div>
+            <label for="meses" class="field-label">Meses laborados</label>
+            <input type="number" id="meses" min="0" max="11" step="1" readonly class="field-input" placeholder="—" tabindex="-1">
+            <p class="field-hint" id="meses-hint">Calculado automáticamente</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOQUE 2: COMISIONES -->
+      <section class="card" id="sec-comisiones">
+        <h2 class="section-title">II. Comisiones devengadas</h2>
+        <div class="sub-card mt-4">
+          <p class="field-label mb-2">¿Ha devengado comisiones los últimos 6 meses?</p>
+          <div class="flex gap-6 mb-3">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="tieneComisiones" value="si" class="accent-seal" id="comisiones-si">
+              <span class="text-sm">Sí</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="tieneComisiones" value="no" class="accent-seal" checked id="comisiones-no">
+              <span class="text-sm">No</span>
+            </label>
+          </div>
+          <div id="comisiones-monto-box" class="hidden">
+            <label for="comisionesMonto" class="field-label">Promedio mensual de comisiones (últimos 6 meses)</label>
+            <div class="relative">
+              <span class="currency-prefix">$</span>
+              <input type="number" inputmode="decimal" id="comisionesMonto" min="0" step="0.01" value="0" class="field-input pl-7"
+                placeholder="0.00">
+            </div>
+            <p class="field-hint">Se usará el promedio mensual de los últimos 6 meses para calcular las prestaciones (Arts. 183 y 199 CT).</p>
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <div class="form-col">
+      <!-- BLOQUE 3: CAUSA DE FINALIZACIÓN -->
+      <section class="card" id="sec-causa">
+        <h2 class="section-title">III. Causa de finalización de la relación laboral</h2>
+        <p class="field-label mt-4 mb-2">Tipo de cierre</p>
+        <div class="fgrid fgrid--wide">
+          <label class="radio-card">
+            <input type="radio" name="causa" value="despido" checked class="peer sr-only">
+            <span class="radio-dot"></span>
+            <span>
+              <span class="block font-medium">Despido injustificado</span>
+              <span class="block text-xs text-slate2 mt-0.5">Indemnización, Art. 58 CT</span>
+            </span>
+          </label>
+          <label class="radio-card">
+            <input type="radio" name="causa" value="renuncia" class="peer sr-only">
+            <span class="radio-dot"></span>
+            <span>
+              <span class="block font-medium">Renuncia voluntaria</span>
+              <span class="block text-xs text-slate2 mt-0.5">Ley de Prestación por Renuncia, 2014</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Requisitos de renuncia voluntaria -->
+        <div id="renuncia-box" class="hidden mt-4">
+          <div class="sub-card">
+            <p class="field-label mb-2">Requisitos de la renuncia voluntaria — Ley N.º 592 (2014), Art. 2</p>
+
+            <div class="fgrid fgrid--wide mb-4">
+              <div>
+                <label class="field-label">¿Notificó al patrono su renuncia por escrito?</label>
+                <div class="flex gap-6">
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="notificoRenuncia" value="si" class="accent-seal" id="notifico-si">
+                    <span class="text-sm">Sí, notifiqué</span>
+                  </label>
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="notificoRenuncia" value="no" class="accent-seal" checked id="notifico-no">
+                    <span class="text-sm">No notifiqué</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div id="renuncia-detalles" class="hidden">
+              <div class="fgrid fgrid--wide">
+                <div>
+                  <label for="tipoEmpleado" class="field-label">Tipo de empleado</label>
+                  <select id="tipoEmpleado" class="field-input">
+                    <option value="comun" selected>Común — demás trabajadores (preaviso de 15 días)</option>
+                    <option value="gerente">Gerente — dirección, jefatura o especializado (preaviso de 30 días)</option>
+                  </select>
+                  <p class="field-hint">El aviso de renuncia por escrito se exige con 30 días de anticipación cuando el trabajador tiene cargo de dirección, jefatura o es trabajador especializado; 15 días para los demás (Art. 2, Ley 592).</p>
+                </div>
+                <div>
+                  <label for="preavisoDias" class="field-label">Días de anticipación del aviso escrito</label>
+                  <input type="number" inputmode="numeric" id="preavisoDias" min="0" step="1" value="15" class="field-input">
+                  <p class="field-hint" id="preaviso-hint">Requeridos por ley: 15 días (trabajador común).</p>
+                </div>
+              </div>
+            </div>
+
+            <div id="renuncia-no-notifico" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p class="text-sm text-red-800 font-medium">⚠ No puede ejecutar el cálculo</p>
+              <p class="text-xs text-red-700 mt-1">La Ley 592 (Art. 2) exige notificar la renuncia por escrito al patrono dentro de los días establecidos. Sin este requisito, la prestación económica por renuncia no procede.</p>
+            </div>
+
+            <p class="field-hint" id="renuncia-requisitos-hint"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOQUE 4: JORNADAS EXTRAORDINARIAS -->
+      <section class="card" id="sec-jornadas">
+        <h2 class="section-title">IV. Jornadas extraordinarias y días especiales</h2>
+
+        <!-- Horas extras -->
+        <div class="sub-card mt-4">
+          <p class="field-label mb-2">¿Trabajó horas extras?</p>
+          <div class="flex gap-6 mb-3">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="tieneHorasExtras" value="si" class="accent-seal" id="he-si">
+              <span class="text-sm">Sí</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="tieneHorasExtras" value="no" class="accent-seal" checked id="he-no">
+              <span class="text-sm">No</span>
+            </label>
+          </div>
+
+          <div id="horas-extras-box" class="hidden">
+            <p class="field-hint mb-3">Ingrese la fecha y las horas de inicio y fin. El sistema clasificará automáticamente las horas como <strong>diurnas</strong> (6:00 a.m.–7:00 p.m.) o <strong>nocturnas</strong> (7:00 p.m.–6:00 a.m.).</p>
+            <div id="he-entries" class="space-y-3"></div>
+            <button type="button" id="btn-add-he" class="mt-3 px-4 py-2 text-sm font-medium text-white bg-purple-2 rounded-md hover:bg-[#4a2bb0] transition-colors">
+              + Añadir horas extras
+            </button>
+            <div class="mt-4 p-3 bg-[var(--soft)] border border-[var(--line)] rounded-md">
+              <p class="text-sm font-medium text-[var(--ink)]">Resumen:</p>
+              <p class="text-sm mt-1">Horas extras diurnas: <strong id="he-diurnas-total">0</strong></p>
+              <p class="text-sm">Horas extras nocturnas: <strong id="he-nocturnas-total">0</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Días de asueto -->
+        <div class="sub-card mt-4">
+          <p class="field-label mb-2">¿Trabajó en días de asueto (feriados)?</p>
+          <div class="flex gap-6 mb-3">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="trabajoAsueto" value="si" class="accent-seal" id="asueto-si">
+              <span class="text-sm">Sí</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="trabajoAsueto" value="no" class="accent-seal" checked id="asueto-no">
+              <span class="text-sm">No</span>
+            </label>
+          </div>
+
+          <div id="asueto-box" class="hidden">
+            <button type="button" id="btn-open-feriados" class="px-4 py-2 text-sm font-medium text-white bg-purple-2 rounded-md hover:bg-[#4a2bb0] transition-colors">
+              📅 Seleccionar días feriados trabajados
+            </button>
+            <p class="field-hint mt-2">Se abrirá un modal con los días feriados de El Salvador. Seleccione cuáles trabajó.</p>
+            <div class="mt-3 p-3 bg-[var(--soft)] border border-[var(--line)] rounded-md">
+              <p class="text-sm">Días de asueto laborados: <strong id="dias-asueto-count">0</strong></p>
+              <div id="dias-asueto-list" class="text-xs text-[var(--muted)] mt-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Días de descanso semanal -->
+        <div class="sub-card mt-4">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <label for="diasDescanso" class="field-label">Días de descanso semanal laborados</label>
+              <input type="number" inputmode="decimal" id="diasDescanso" min="0" step="1" value="0" class="field-input">
+              <p class="field-hint">Días de descanso obligatorio (séptimo día) que fueron laborados.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOQUE 5: VACACIONES DEL PERÍODO ACTUAL -->
+      <section class="card" id="sec-vacaciones">
+        <h2 class="section-title">V. Vacaciones del período actual</h2>
+
+        <div class="sub-card mt-4">
+          <p class="field-label mb-2">¿Tomó vacaciones durante el período actual?</p>
+          <div class="flex gap-6 mb-3">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="tomoVacaciones" value="si" class="accent-seal" id="vac-si">
+              <span class="text-sm">Sí</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="tomoVacaciones" value="no" class="accent-seal" checked id="vac-no">
+              <span class="text-sm">No</span>
+            </label>
+          </div>
+
+          <div id="vacaciones-box" class="hidden">
+            <div class="fgrid fgrid--wide mb-4">
+              <div>
+                <label class="field-label">¿En cuántos períodos fueron tomadas?</label>
+                <select id="vacPeriodos" class="field-input">
+                  <option value="1">Un solo período (15 días continuos)</option>
+                  <option value="2">Dos períodos (divididas en fechas distintas)</option>
+                </select>
+                <p class="field-hint">Las vacaciones pueden dividirse en dos períodos como máximo.</p>
+              </div>
+            </div>
+
+            <div id="vac-periodo-1" class="fgrid fgrid--wide mb-3">
+              <div>
+                <label for="vac1Inicio" class="field-label">Período — Fecha de inicio</label>
+                <input type="date" id="vac1Inicio" class="field-input">
+              </div>
+              <div>
+                <label for="vac1Fin" class="field-label">Período — Fecha de fin</label>
+                <input type="date" id="vac1Fin" class="field-input">
+              </div>
+            </div>
+
+            <div id="vac-periodo-2" class="fgrid fgrid--wide hidden">
+              <div>
+                <label for="vac2Inicio" class="field-label">Segundo período — Fecha de inicio</label>
+                <input type="date" id="vac2Inicio" class="field-input">
+              </div>
+              <div>
+                <label for="vac2Fin" class="field-label">Segundo período — Fecha de fin</label>
+                <input type="date" id="vac2Fin" class="field-input">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <div id="error-box" class="hidden border rounded-md text-sm px-4 py-3" role="alert"></div>
+
+      <button type="submit" class="btn-primary">
+        Calcular liquidación
+      </button>
+    </form>
+
+    <!-- ============ MODAL DE DÍAS FERIADOS ============ -->
+    <div id="modal-feriados" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.5)">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col">
+        <div class="p-4 border-b flex items-center justify-between">
+          <h3 class="font-semibold text-lg text-[var(--ink)]">Días feriados de El Salvador</h3>
+          <select id="feriado-year" class="field-input" style="width:auto"></select>
+        </div>
+        <div class="p-4 overflow-y-auto flex-1">
+          <p class="text-sm text-[var(--muted)] mb-3">Marque los días feriados en los que trabajó. Se incluyen feriados nacionales y las principales fiestas patronales locales.</p>
+          <div id="feriados-list" class="space-y-2"></div>
+        </div>
+        <div class="p-4 border-t flex gap-3 justify-end">
+          <button type="button" id="btn-feriados-cancel" class="px-4 py-2 text-sm font-medium text-[var(--ink)] bg-[var(--soft)] border border-[var(--line)] rounded-md">Cancelar</button>
+          <button type="button" id="btn-feriados-ok" class="px-4 py-2 text-sm font-medium text-white bg-purple-2 rounded-md">Confirmar selección</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPROBANTE -->
+    <section id="resultado" class="hidden mt-12">
+      <div class="flex items-center justify-between border-b-2 border-ink pb-3 mb-1" data-no-print>
+        <h2 class="section-title !mt-0">Resultado del cálculo</h2>
+        <button id="btn-print">Imprimir / Guardar PDF</button>
+      </div>
+
+      <div id="print-area" class="ledger">
+        <div class="print-only">
+          <div class="doc-head">
+            <div class="doc-titles">
+              <p class="t1">REPÚBLICA DE EL SALVADOR</p>
+              <p class="t2">CÁLCULO DE PRESTACIONES LABORALES</p>
+              <p class="t3">HOJA DE LIQUIDACIÓN</p>
+            </div>
+            <div class="doc-meta"><p id="r-generado"></p></div>
+          </div>
+          <p class="doc-motivo">MOTIVO DEL CÁLCULO: <span id="r-causaLabel2">—</span></p>
+        </div>
+
+        <!-- I. DATOS GENERALES -->
+        <div class="print-only">
+          <h3 class="doc-h3">Datos generales</h3>
+          <dl class="kv-grid">
+            <div class="kv"><dt>Persona trabajadora</dt><dd id="r-nombreTrabajador">—</dd></div>
+            <div class="kv"><dt>Patrono</dt><dd id="r-patrono">—</dd></div>
+            <div class="kv"><dt>Cargo desempeñado</dt><dd id="r-cargo">—</dd></div>
+            <div class="kv"><dt>Salario mensual</dt><dd id="r-salario">—</dd></div>
+            <div class="kv"><dt>Fecha de ingreso</dt><dd id="r-fechaIngreso">—</dd></div>
+            <div class="kv"><dt>Fecha de terminación</dt><dd id="r-fechaTerminacion">—</dd></div>
+            <div class="kv"><dt>Antigüedad reconocida</dt><dd id="r-antiguedad">—</dd></div>
+            <div class="kv"><dt>Vacaciones del período</dt><dd id="r-vacacionesInfo">—</dd></div>
+            <div class="kv"><dt>Aguinaldo (reforma 2026)</dt><dd id="r-aguinaldoInfo">—</dd></div>
+            <div class="kv"><dt>Comisiones (prom. mensual)</dt><dd id="r-comisionesInfo">—</dd></div>
+            <div class="kv"><dt>Salario base para prestaciones</dt><dd id="r-salarioBasePrestaciones">—</dd></div>
+            <div class="kv"><dt>Horas extras diurnas</dt><dd id="r-heDiurnasInfo">—</dd></div>
+            <div class="kv"><dt>Horas extras nocturnas</dt><dd id="r-heNocturnasInfo">—</dd></div>
+            <div class="kv"><dt>Días de asueto laborados</dt><dd id="r-asuetoInfo">—</dd></div>
+            <div class="kv"><dt>Tipo de empleado</dt><dd id="r-tipoEmpleado">—</dd></div>
+            <div class="kv"><dt>Preaviso de renuncia (Ley 592)</dt><dd id="r-preaviso">—</dd></div>
+          </dl>
+        </div>
+
+        <!-- II. DESGLOSE -->
+        <h3 class="doc-h3 print-only">Desglose de prestaciones liquidadas<span class="bar-right">Valor</span></h3>
+        <dl class="divide-y divide-line">
+          <div class="ledger-row">
+            <dt>Vacación proporcional del año en curso<span class="legal-ref">Arts. 177 y 187 CT</span></dt>
+            <dd id="r-vacacion">—</dd>
+          </div>
+          <div class="ledger-row">
+            <dt>Aguinaldo <span class="legal-ref">Arts. 196–198 CT · Reforma 2026 (pago desde 1-oct)</span></dt>
+            <dd id="r-aguinaldo">—</dd>
+          </div>
+          <div class="ledger-row" id="row-comisiones">
+            <dt>Comisiones devengadas (6 meses)<span class="legal-ref">Arts. 183 y 199 CT</span></dt>
+            <dd id="r-comisiones">—</dd>
+          </div>
+          <div class="ledger-row">
+            <dt><span id="r-causa-label">Indemnización por despido injustificado</span><span class="legal-ref" id="r-causa-legal">Art. 58 CT</span></dt>
+            <dd id="r-causa">—</dd>
+          </div>
+          <div class="ledger-row">
+            <dt>Subtotal horas extras diurnas<span class="legal-ref">Art. 169 CT</span></dt>
+            <dd id="r-heDiurnas">—</dd>
+          </div>
+          <div class="ledger-row">
+            <dt>Subtotal horas extras nocturnas<span class="legal-ref">Arts. 168 y 169 CT</span></dt>
+            <dd id="r-heNocturnas">—</dd>
+          </div>
+          <div class="ledger-row">
+            <dt>Días de asueto laborados<span class="legal-ref">Art. 192 CT</span></dt>
+            <dd id="r-asueto">—</dd>
+          </div>
+          <div class="ledger-row">
+            <dt>Días de descanso semanal laborados<span class="legal-ref">Arts. 175 y 176 CT</span></dt>
+            <dd id="r-descanso">—</dd>
+          </div>
+        </dl>
+        <div class="total-row">
+          <span><span data-no-print>Monto total de la liquidación</span><span class="print-only-text">Total devengado (bruto)</span></span>
+          <span id="r-total">—</span>
+        </div>
+        <p id="r-nota" class="text-xs text-slate2 mt-3"></p>
+        <p id="r-renuncia-requisitos" class="text-xs text-slate2 mt-3 hidden"></p>
+        <p id="r-nota-beneficios" class="text-xs text-slate2 mt-2"></p>
+
+        <!-- III. DEDUCCIONES -->
+        <div class="print-only">
+          <h3 class="doc-h3">Deducciones de ley y neto a pagar<span class="bar-right">Valor</span></h3>
+          <p class="text-xs text-slate2 leading-relaxed mb-3">
+            Remuneración gravada: <span id="r-gravada" class="font-medium text-ink">—</span>.
+            Monto exento de ISR y de cotizaciones: <span id="r-exento" class="font-medium text-ink">—</span>
+            (<span id="r-exento-nota">indemnización y aguinaldo</span>).
+          </p>
+          <dl class="divide-y divide-line">
+            <div class="ledger-row"><dt>Cotización ISSS (trabajador)<span class="legal-ref">Reglamento del ISSS, Art. 29</span></dt><dd id="r-isss">—</dd></div>
+            <div class="ledger-row"><dt>Cotización AFP (trabajador)<span class="legal-ref">Ley del Sistema de Ahorro para Pensiones</span></dt><dd id="r-afp">—</dd></div>
+            <div class="ledger-row"><dt>Retención de ISR<span class="legal-ref">Art. 37 Ley de ISR</span></dt><dd id="r-isr">—</dd></div>
+          </dl>
+          <div class="total-row total-row--sub"><span>Total de deducciones</span><span id="r-deducciones">—</span></div>
+          <div class="total-row"><span>Monto neto a pagar</span><span id="r-neto">—</span></div>
+          <p id="r-neto-letras" class="text-xs italic text-slate2 mt-2">—</p>
+        </div>
+
+        <!-- IV. DECLARACIÓN -->
+        <div class="print-only">
+          <h3 class="doc-h3">Declaración</h3>
+          <p id="r-declaracion" class="text-sm leading-relaxed text-ink"></p>
+          <div class="grid sm:grid-cols-2 gap-8 mt-8">
+            <div class="sig-block">
+              <p class="sig-title">Persona trabajadora</p>
+              <p class="sig-line">Nombre: <span></span></p>
+              <p class="sig-line">DUI: <span></span></p>
+              <p class="sig-line">Fecha: <span></span></p>
+            </div>
+            <div class="sig-block">
+              <p class="sig-title">Patrono o representante legal</p>
+              <p class="sig-line">Nombre: <span></span></p>
+              <p class="sig-line">DUI: <span></span></p>
+              <p class="sig-line">Fecha: <span></span></p>
+            </div>
+          </div>
+          <p class="legal-warning">
+            <strong>Nota:</strong> Este documento es un comprobante informativo del cálculo de prestaciones
+            y NO constituye el finiquito laboral. Conforme al Art. 402 inciso 2 del Código de Trabajo, la renuncia, la
+            terminación por mutuo consentimiento o el recibo de pago de prestaciones por despido sin causa legal solo
+            tienen valor probatorio si constan en hojas extendidas por la Dirección General de Inspección de Trabajo o
+            por los jueces con competencia en materia laboral, utilizadas dentro de los diez días siguientes a su
+            expedición, o bien en documento privado autenticado ante notario. Se recomienda asesoría legal profesional
+            antes de suscribir cualquier finiquito.
+          </p>
+          <div class="print-only doc-foot-wrap"><p class="doc-foot">República de El Salvador, C.A.<br>Documento informativo generado con una herramienta académica.<br>Derecho Empresarial e Informático · Ingeniería en Sistemas y Redes Informáticas, Universidad Gerardo Barrios.</p></div>
+        </div>
+      </div>
+
+      <!-- METODOLOGÍA DINÁMICA -->
+      <details id="metodologia" class="metodo" data-no-print>
+        <summary>Metodología y base legal aplicada, con sus datos</summary>
+        <div class="metodo-body">
+          <section class="mgroup">
+            <h3 class="mgroup-title">Convenciones y datos base</h3>
+            <p class="mgroup-sub">Reglas generales que se aplican a todo el cálculo.</p>
+            <div class="mgrid">
+              <article class="mcard mcard--wide">
+                <header class="mcard-h"><span class="mnum">i</span><h4>Convenciones de cálculo</h4><span class="mlaw">Práctica de los Juzgados de lo Laboral</span></header>
+                <div class="mchips">
+                  <span class="mchip">Mes comercial: <b>30 días</b></span>
+                  <span class="mchip">Año comercial: <b>360 días</b></span>
+                  <span class="mchip">Jornada ordinaria: <b>8 horas</b></span>
+                  <span class="mchip">Antigüedad: <b>incluye el último día laborado</b></span>
+                  <span class="mchip">Jornada diurna: <b>6:00 a.m.–7:00 p.m.</b></span>
+                  <span class="mchip">Jornada nocturna: <b>7:00 p.m.–6:00 a.m.</b></span>
+                  <span class="mchip">Aguinaldo — Reforma 2026: <b>pago desde 1-oct</b></span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="mgroup">
+            <h3 class="mgroup-title">Salario base y comisiones</h3>
+            <div class="mgrid">
+              <article class="mcard">
+                <header class="mcard-h"><span class="mnum">B1</span><h4>Comisiones devengadas</h4></header>
+                <p class="mbadge" id="m-comisiones-info">—</p>
+                <p class="mnote" id="m-comisiones-detalle">—</p>
+              </article>
+              <article class="mcard">
+                <header class="mcard-h"><span class="mnum">B2</span><h4>Salario base para prestaciones</h4><span class="mlaw">Arts. 183 y 199 CT</span></header>
+                <div class="mform"><span class="mlabel">Fórmula</span><code>Salario base = salario mensual + promedio mensual de comisiones</code></div>
+                <div class="mcalc"><span class="mlabel">Con sus datos</span><p class="mexpr"><span id="m-salario-base-calc">—</span><span class="meq">=</span><strong id="m-salario-base">—</strong></p></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="mgroup">
+            <h3 class="mgroup-title">Prestaciones</h3>
+            <div class="mgrid">
+              <article class="mcard"><header class="mcard-h"><span class="mnum">1</span><h4>Salario básico diario (SBD)</h4></header>
+                <div class="mform"><span class="mlabel">Fórmula</span><code>SBD = salario base ÷ 30</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-sbd-calc">—</span> ÷ 30<span class="meq">=</span><strong id="m-sbd">—</strong></p></div>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">2</span><h4>Valor de la hora ordinaria (H)</h4></header>
+                <div class="mform"><code>H = SBD ÷ 8</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-h-calc">—</span> ÷ 8<span class="meq">=</span><strong id="m-h">—</strong></p></div>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">3</span><h4>Antigüedad y fracción de año</h4></header>
+                <p class="mnote">Antigüedad: <span id="m-antiguedad">—</span></p>
+                <div class="mform"><code>Fracción = (meses × 30 + días) ÷ 360</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-fraccion-calc">—</span><span class="meq">=</span><strong id="m-fraccion">—</strong></p></div>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">4</span><h4>Vacación proporcional del año en curso</h4><span class="mlaw">Arts. 177 y 187 CT</span></header>
+                <div class="mform"><code>Vacación = (SBD × 15 × 1.30) × fracción de año</code></div>
+                <div class="mcalc"><p class="mexpr">(<span id="m-vac-calc">—</span>) × <span id="m-fraccion2">—</span><span class="meq">=</span><strong id="m-vac">—</strong></p></div>
+                <p class="mnote" id="m-vac-nota-pago"></p>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">5</span><h4>Aguinaldo (Reforma 2026)</h4><span class="mlaw">Arts. 196–198 CT · Reforma Legislativa 23-sep-2026</span></header>
+                <dl class="mdl"><dt>Categoría</dt><dd><span id="m-agu-cat">—</span></dd><dt>Regla aplicada</dt><dd><span id="m-agu-regla">—</span></dd><dt>Fracción / Estado</dt><dd><strong id="m-agu-fraccion">—</strong></dd></dl>
+                <div class="mform"><code>Aguinaldo = SBD × días de categoría × fracción</code></div>
+                <div class="mcalc"><p class="mexpr">(<span id="m-agu-calc">—</span>) × <span id="m-agu-fraccion2">—</span><span class="meq">=</span><strong id="m-agu">—</strong></p></div>
+                <p class="mnote">Reforma aprobada el 23 de septiembre de 2026: el aguinaldo puede pagarse a partir del 1 de octubre. Si la terminación es antes del 1-oct, se paga proporcional; si es el 1-oct o posterior, se paga completo.</p>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">6</span><h4>Comisiones devengadas</h4><span class="mlaw">Arts. 183 y 199 CT</span></header>
+                <div class="mform"><code>Comisiones = promedio mensual × 6 meses</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-com-calc">—</span><span class="meq">=</span><strong id="m-com">—</strong></p></div>
+              </article>
+              <article class="mcard mcard--wide"><header class="mcard-h"><span class="mnum">7</span><h4><span id="m-causa-nombre">Indemnización por despido injustificado</span></h4><span class="mlaw"><span id="m-causa-legal">Art. 58 CT</span></span></header>
+                <dl class="mdl" id="m-ren-dl"></dl>
+                <p class="mnote" id="m-causa-intro">—</p>
+                <p class="mnote" id="m-causa-tope"></p>
+                <p class="mnote mnote--alert" id="m-causa-requisito"></p>
+                <div class="mform"><code>Monto = salario base × (años + fracción de año)</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-causa-calc">—</span><span class="meq">=</span><strong id="m-causa-monto">—</strong></p></div>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">8</span><h4>Horas extras diurnas</h4><span class="mlaw">Art. 169 CT</span></header>
+                <div class="mform"><code>H × horas × 2 (recargo del 100 %)</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-hed-calc">—</span><span class="meq">=</span><strong id="m-hed">—</strong></p></div>
+                <p class="mnote" id="m-hed-detalle"></p>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">9</span><h4>Horas extras nocturnas</h4><span class="mlaw">Arts. 168 y 169 CT</span></header>
+                <div class="mform"><code>H × horas × 2 × 1.25 (100 % + 25 % nocturno)</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-hen-calc">—</span><span class="meq">=</span><strong id="m-hen">—</strong></p></div>
+                <p class="mnote" id="m-hen-detalle"></p>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">10</span><h4>Días de asueto laborados</h4><span class="mlaw">Art. 192 CT</span></header>
+                <div class="mform"><code>SBD × 2 × días (salario ordinario + 100 %)</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-asu-calc">—</span><span class="meq">=</span><strong id="m-asu">—</strong></p></div>
+                <p class="mnote" id="m-asu-detalle"></p>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">11</span><h4>Descanso semanal laborado</h4><span class="mlaw">Arts. 175 y 176 CT</span></header>
+                <div class="mform"><code>SBD × 1.5 × días (salario ordinario + 50 %)</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-des-calc">—</span><span class="meq">=</span><strong id="m-des">—</strong></p></div>
+              </article>
+              <article class="mcard mcard--wide mcard--key"><header class="mcard-h"><span class="mnum">12</span><h4>Monto total de la liquidación</h4></header>
+                <div class="mcalc"><p class="mexpr">Vacación + aguinaldo + comisiones + causa + extras + asueto + descanso<span class="meq">=</span><strong id="m-total">—</strong></p></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="mgroup">
+            <h3 class="mgroup-title">Deducciones de ley y neto a pagar</h3>
+            <div class="mgrid">
+              <article class="mcard"><header class="mcard-h"><span class="mnum">13</span><h4>Remuneración exenta y gravada</h4></header>
+                <div class="mpair"><div><span class="mlabel">Exento de ISR y cotizaciones</span><strong id="m-exento">—</strong></div><div><span class="mlabel">Gravada</span><strong id="m-gravada">—</strong></div></div>
+                <p class="mnote">Gravada: vacaciones, comisiones, horas extras, asueto y descanso semanal. Exenta: indemnización/renuncia y aguinaldo.</p>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">14</span><h4>Cotización ISSS (trabajador)</h4><span class="mlaw">Reglamento ISSS, Art. 29</span></header>
+                <div class="mform"><code>3 % × remuneración gravada (tope $1,000.00)</code></div>
+                <div class="mcalc"><p class="mexpr">3 % × <span id="m-isss-base">—</span><span class="meq">=</span><strong id="m-isss">—</strong></p></div>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">15</span><h4>Cotización AFP (trabajador)</h4><span class="mlaw">Ley del SAP</span></header>
+                <div class="mform"><code>7.25 % × remuneración gravada (sin tope)</code></div>
+                <div class="mcalc"><p class="mexpr">7.25 % × <span id="m-afp-base">—</span><span class="meq">=</span><strong id="m-afp">—</strong></p></div>
+              </article>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">16</span><h4>Retención de ISR</h4><span class="mlaw">Art. 37 Ley de ISR</span></header>
+                <p class="mnote">Base gravable: <strong id="m-isr-base">—</strong></p>
+                <div class="mcalc"><p class="mexpr"><span id="m-isr-tramo">—</span><span class="meq">=</span><strong id="m-isr">—</strong></p></div>
+              </article>
+              <article class="mcard mcard--wide mcard--key"><header class="mcard-h"><span class="mnum">17</span><h4>Monto neto a pagar</h4></header>
+                <div class="mform"><code>Neto = total devengado − (ISSS + AFP + ISR)</code></div>
+                <div class="mcalc"><p class="mexpr"><span id="m-neto-calc">—</span><span class="meq">=</span><strong id="m-neto">—</strong></p></div>
+              </article>
+            </div>
+          </section>
+
+          <p class="mfoot">
+            <b>Este cálculo es informativo</b> y no constituye un finiquito legal. Verifique con el Ministerio de Trabajo y Previsión Social y con un contador autorizado.<br>
+            <b>Aguinaldo — Reforma 2026:</b> Decreto Legislativo aprobado el 23 de septiembre de 2026. El aguinaldo puede pagarse a partir del 1 de octubre; si la terminación ocurre antes del 1-oct, se paga proporcional; si ocurre el 1-oct o después, se paga completo.<br>
+            <b>Vacaciones y aguinaldo:</b> Arts. 177 a 190 y 196 a 198 del Código de Trabajo.<br>
+            <b>Renuncia voluntaria:</b> Ley Reguladora de la Prestación Económica por Renuncia Voluntaria (Decreto Legislativo N.º 592, 2014), Arts. 2 y 4. Requisitos: preaviso escrito (15 o 30 días según cargo) y mínimo 2 años de servicio continuo.<br>
+            <b>Días de asueto:</b> Arts. 192 y 193 CT. Incluye feriados nacionales y fiestas patronales locales (San Miguel: 21 de noviembre; San Salvador: 3 y 5 de agosto; Santa Ana: 26 de julio).
+          </p>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <footer class="footer" data-no-print>
+    <div class="wrap"><b>Herramienta académica</b> — Derecho Empresarial e Informático · Ingeniería en Sistemas y Redes Informáticas, Universidad Gerardo Barrios.</div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+
+</html>

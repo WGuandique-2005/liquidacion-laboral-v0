@@ -647,19 +647,19 @@ function validarCamposCompletos() {
   const nombre = normalizarEspacios(nombreTrabajadorInput.value);
   const patrono = normalizarEspacios(patronoInput.value);
   const cargo = normalizarEspacios(cargoInput.value);
-  if (nombre.length < 3 || !NOMBRE_PATTERN.test(nombre)) {
+  if (nombre && (nombre.length < 3 || !NOMBRE_PATTERN.test(nombre))) {
     errores.push('Ingrese el nombre completo de la persona trabajadora, usando solo letras y espacios.');
     marcarCampoInvalido(nombreTrabajadorInput);
   }
-  if (patrono.length < 2 || !TEXTO_GENERAL_PATTERN.test(patrono)) {
+  if (patrono && (patrono.length < 2 || !TEXTO_GENERAL_PATTERN.test(patrono))) {
     errores.push('Ingrese un patrono o empresa válido.');
     marcarCampoInvalido(patronoInput);
   }
-  if (!DUI_PATTERN.test(duiInput.value)) {
+  if (duiInput.value && !DUI_PATTERN.test(duiInput.value)) {
     errores.push('El DUI debe tener el formato 00000000-0.');
     marcarCampoInvalido(duiInput);
   }
-  if (cargo.length < 2 || !TEXTO_GENERAL_PATTERN.test(cargo)) {
+  if (cargo && (cargo.length < 2 || !TEXTO_GENERAL_PATTERN.test(cargo))) {
     errores.push('Ingrese un cargo desempeñado válido.');
     marcarCampoInvalido(cargoInput);
   }

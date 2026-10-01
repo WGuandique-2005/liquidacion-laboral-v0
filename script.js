@@ -198,18 +198,22 @@ duiInput.addEventListener('input', () => {
 // Los montos y cantidades se ingresan como valores positivos: no se admiten
 // signos (+/-) ni notación exponencial (e/E), incluso al pegar contenido.
 document.querySelectorAll('input[type="number"]:not([readonly])').forEach(campo => {
+  const limpiarValorNoPermitido = () => {
+    if (campo.value && (!Number.isFinite(Number(campo.value)) || Number(campo.value) < 0 || /[-+eE]/.test(campo.value))) {
+      campo.value = '';
+    }
+    campo.classList.remove('is-invalid');
+  };
   campo.addEventListener('keydown', (evento) => {
     if (['-', '+', 'e', 'E'].includes(evento.key)) evento.preventDefault();
   });
   campo.addEventListener('beforeinput', (evento) => {
     if (evento.data && /[-+eE]/.test(evento.data)) evento.preventDefault();
   });
-  campo.addEventListener('input', () => {
-    if (campo.value && (!Number.isFinite(Number(campo.value)) || Number(campo.value) < 0)) {
-      campo.value = '';
-    }
-    campo.classList.remove('is-invalid');
-  });
+  campo.addEventListener('input', limpiarValorNoPermitido);
+  campo.addEventListener('change', limpiarValorNoPermitido);
+  campo.addEventListener('blur', limpiarValorNoPermitido);
+  campo.addEventListener('paste', () => setTimeout(limpiarValorNoPermitido));
 });
 
 /* =========================================================

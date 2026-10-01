@@ -1,13 +1,16 @@
 /**
  * Calculadora de Liquidación Laboral — El Salvador
  * Código de Trabajo (Decreto N° 15, 1972), Ley 592 (2014),
- * Reforma Aguinaldo 23-sep-2026.
+ * Reforma Aguinaldo 23-sep-2026 (Decretos 669-673: amplía la ventana de PAGO a 1-oct/20-dic;
+ * el 12-dic sigue siendo la fecha de referencia del cómputo proporcional).
  *
  * CONVENCIONES:
  * - Mes comercial = 30 días; año comercial = 360 días; jornada = 8 horas.
  * - La antigüedad INCLUYE el último día laborado.
  * - Jornada diurna: 6:00 AM – 7:00 PM. Jornada nocturna: 7:00 PM – 6:00 AM.
- * - Art. 194 CT: si un día es asueto Y descanso, solo se paga el 100% de asueto.
+ * - Art. 194 CT: si un día es asueto Y descanso, se paga la remuneración del Art. 192
+ *   (no se acumula el 50% del descanso) más el descanso compensatorio.
+ * - Topes (Art. 58 CT y Ley 592) sobre el salario mínimo DIARIO vigente ($13.44).
  */
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -33,8 +36,11 @@ const resultSection = document.getElementById('resultado');
  * SALARIO MÍNIMO — SECTOR COMERCIO (para tope Art. 58)
  * Decreto Ejec. N.º 11/12 (2025)
  * ========================================================= */
-const SALARIO_MINIMO_COMERCIO = 408.80;
-const TOPE_INDEMNIZACION = SALARIO_MINIMO_COMERCIO * 4; // $1,635.20
+const SALARIO_MINIMO_COMERCIO = 408.80;      // mensual (referencia)
+const SALARIO_MINIMO_DIARIO = 13.44;          // $408.80 x 12 / 365 (Decreto Ejec. 11/2025)
+const TOPE_DIARIO_DESPIDO = SALARIO_MINIMO_DIARIO * 4;   // Art. 58 CT: $53.76 por día
+const TOPE_INDEMNIZACION = TOPE_DIARIO_DESPIDO * 30;     // $1,612.80 mensual equivalente
+const TOPE_DIARIO_RENUNCIA = SALARIO_MINIMO_DIARIO * 2;  // Ley 592 Art. 4: $26.88 por día
 
 /* =========================================================
  * FERIADOS — Solo nacionales + San Miguel (21-nov)
@@ -108,16 +114,14 @@ function clasificarHoras(startTime, endTime) {
  * ========================================================= */
 function diffFechas(isoIngreso, isoTerminacion) {
   if (!isoIngreso || !isoTerminacion) return null;
-  const ingreso = new Date(isoIngreso+'T00:00:00'), term = new Date(isoTerminacion+'T00:00:00');
-  if (isNaN(ingreso) || isNaN(term) || term <= ingreso) return null;
-  let anios = term.getFullYear()-ingreso.getFullYear();
-  let meses = term.getMonth()-ingreso.getMonth();
-  let dias = term.getDate()-ingreso.getDate();
-  if (dias<0){ meses-=1; dias += new Date(term.getFullYear(),term.getMonth(),0).getDate(); if(dias<0){meses-=1;dias+=30;} }
+  const a = new Date(isoIngreso+'T00:00:00'), b = new Date(isoTerminacion+'T00:00:00');
+  if (isNaN(a) || isNaN(b) || b <= a) return null;
+  b.setDate(b.getDate()+1); // el último día laborado se incluye
+  let anios = b.getFullYear()-a.getFullYear();
+  let meses = b.getMonth()-a.getMonth();
+  let dias = Math.min(b.getDate(),30) - Math.min(a.getDate(),30); // convención 30/360
+  if (dias<0){ meses-=1; dias+=30; }
   if (meses<0){ anios-=1; meses+=12; }
-  dias+=1;
-  if (dias>=30){dias-=30;meses+=1;}
-  if (meses>=12){meses-=12;anios+=1;}
   return {anios,meses,dias};
 }
 
@@ -485,12 +489,12 @@ function actualizarAguinaldoHint() {
   const termISO = fechaTerminacionInput.value;
   if (!termISO) return;
   const termDate = new Date(termISO+'T00:00:00');
-  const oct1 = new Date(termDate.getFullYear(), 9, 1);
+  const dic12 = new Date(termDate.getFullYear(), 11, 12);
   const hint = document.getElementById('aguinaldo-hint');
-  if (termDate >= oct1) {
-    hint.innerHTML = 'Si no ha sido pagado: terminación el <strong>1-oct o posterior</strong> → aguinaldo <strong>COMPLETO</strong>.';
+  if (termDate >= dic12) {
+    hint.innerHTML = 'Si no ha sido pagado: terminación el <strong>12-dic o posterior</strong> → aguinaldo <strong>COMPLETO</strong> (si tiene 1 año o más).';
   } else {
-    hint.innerHTML = 'Si no ha sido pagado: terminación <strong>antes del 1-oct</strong> → aguinaldo <strong>PROPORCIONAL</strong>.';
+    hint.innerHTML = 'Si no ha sido pagado: terminación <strong>antes del 12-dic</strong> → aguinaldo <strong>PROPORCIONAL</strong> (Art. 202 CT, reforma 2026: el 12-dic es la fecha de referencia).';
   }
 }
 fechaTerminacionInput.addEventListener('change', actualizarAguinaldoHint);
@@ -516,8 +520,8 @@ function clearError() { errorBox.classList.add('hidden'); errorBox.textContent='
 
 function diasAguinaldoPorAntiguedad(anios) {
   if (anios < 3) return 15;
-  if (anios <= 10) return 19;
-  return 21;
+  if (anios < 10) return 19;
+  return 21; // diez años o más (Art. 198 CT)
 }
 
 /* Monto en letras */
@@ -529,7 +533,7 @@ function convertirGrupo(n){
   if(n===0)return''; if(n===100)return'cien'; let out='';
   const c=Math.floor(n/100),r=n%100;
   if(c>0)out+=CENTENAS[c]+' ';
-  if(r>0){ if(r<=20)out+=UNIDADES[r]; else if(r<30)out+='veinti'+UNIDADES[r-20]; else{const d=Math.floor(r/10),u=r%10;out+=DECENAS[d];if(u>0)out+=' y '+UNIDADES[u];} }
+  if(r>0){ if(r<=20)out+=UNIDADES[r]; else if(r<30)out+=({1:'veintiuno',2:'veintidós',3:'veintitrés',6:'veintiséis'}[r-20]||'veinti'+UNIDADES[r-20]); else{const d=Math.floor(r/10),u=r%10;out+=DECENAS[d];if(u>0)out+=' y '+UNIDADES[u];} }
   return out.trim();
 }
 function numeroALetras(num){
@@ -578,15 +582,8 @@ function validarCamposCompletos() {
     if (isNaN(monto) || monto < 0) errores.push('Si tiene comisiones, debe ingresar el promedio mensual.');
   }
 
-  // Renuncia
-  const causa = document.querySelector('input[name="causa"]:checked')?.value;
-  if (causa === 'renuncia') {
-    const notifico = document.querySelector('input[name="notificoRenuncia"]:checked')?.value === 'si';
-    if (!notifico) errores.push('Debe notificar su renuncia por escrito (Ley 592, Art. 2).');
-    const preaviso = parseInt(preavisoDiasInput.value,10)||0;
-    const req = tipoEmpleadoSelect.value === 'gerente' ? 30 : 15;
-    if (preaviso < req) errores.push(`El preaviso debe ser de al menos ${req} días.`);
-  }
+  // Renuncia: NO se bloquea el cálculo; si no cumple requisitos (Ley 592) la prestación
+  // por renuncia queda en $0 y se explica, pero vacación, aguinaldo, etc. se siguen calculando.
 
   // Horas extras
   const tieneHE = document.querySelector('input[name="tieneHorasExtras"]:checked')?.value === 'si';
@@ -676,10 +673,11 @@ form.addEventListener('submit', (e) => {
   const comisionesMonto = tieneComisiones ? (parseFloat(document.getElementById('comisionesMonto').value)||0) : 0;
 
   /* --- Renuncia --- */
-  let tipoEmpleado = 'comun', preavisoDias = 0;
+  let tipoEmpleado = 'comun', preavisoDias = 0, notificoRenuncia = false;
   if (causa === 'renuncia') {
     tipoEmpleado = tipoEmpleadoSelect.value;
-    preavisoDias = Math.max(parseInt(preavisoDiasInput.value,10)||0, 0);
+    notificoRenuncia = document.querySelector('input[name="notificoRenuncia"]:checked')?.value === 'si';
+    preavisoDias = notificoRenuncia ? Math.max(parseInt(preavisoDiasInput.value,10)||0, 0) : 0;
   }
 
   /* --- Salario base --- */
@@ -691,10 +689,9 @@ form.addEventListener('submit', (e) => {
    * VACACIONES — Lógica completa
    * 
    * Casos:
-   * A) NO tomó vacaciones → vacación proporcional completa por fracción de año
-   * B) SÍ tomó y fueron PAGADAS → $0 (ya cubiertas)
-   * C) SÍ tomó y NO fueron pagadas → se debe el período completo (15d × 1.3)
-   * D) SÍ tomó PARCIALMENTE (ej. 10 de 15 días) → proporcional por días restantes
+   * A) NO tomó → proporcional por fracción de año
+   * B) Tomó y le pagaron → igualmente proporcional desde el último aniversario
+   * C) Tomó y NO le pagaron → período completo (15d × 1.3) + proporcional
    * ========================================================= */
   const tomoVacaciones = document.querySelector('input[name="tomoVacaciones"]:checked').value === 'si';
   const vacacionesPagadas = tomoVacaciones ?
@@ -704,24 +701,19 @@ form.addEventListener('submit', (e) => {
   let vacacionProporcional = 0;
   let vacEstado = '', vacDetalle = '';
 
+  // La fracción desde el último aniversario SIEMPRE se debe (Arts. 177 y 187 CT),
+  // haya o no gozado el período anterior. Solo si gozó y NO le pagaron se suma el período completo.
+  vacacionProporcional = vacacionPeriodoCompleto * fraccionAnio;
   if (!tomoVacaciones) {
-    // Caso A: No tomó → proporcional completa
-    vacacionProporcional = vacacionPeriodoCompleto * fraccionAnio;
     vacEstado = 'No gozadas';
-    vacDetalle = `Vacación proporcional completa por fracción de año (${fmtFrac(fraccionAnio)}).`;
+    vacDetalle = `Vacación proporcional por fracción de año (${fmtFrac(fraccionAnio)}).`;
+  } else if (vacacionesPagadas) {
+    vacEstado = 'Gozadas y pagadas';
+    vacDetalle = `Período gozado y pagado. Se paga solo la proporcional desde el último aniversario (${fmtFrac(fraccionAnio)}).`;
   } else {
-    if (vacacionesPagadas) {
-      // Caso B: Gozadas y pagadas → $0
-      vacacionProporcional = 0;
-      vacEstado = 'Gozadas y pagadas';
-      vacDetalle = 'Ya fueron cubiertas por el patrono. No se debe pago adicional.';
-    } else {
-      // Caso C: Gozadas pero NO pagadas → deuda completa
-      // (aunque las haya gozado, si no le pagaron, se le debe el período)
-      vacacionProporcional = vacacionPeriodoCompleto;
-      vacEstado = 'Gozadas sin pagar';
-      vacDetalle = 'Las gozó pero el patrono no pagó la remuneración. Se debe el período completo (15d + 30%).';
-    }
+    vacacionProporcional += vacacionPeriodoCompleto;
+    vacEstado = 'Gozadas sin pagar';
+    vacDetalle = `Gozó el período pero no se pagó: se debe el período completo (15d + 30%) más la proporcional (${fmtFrac(fraccionAnio)}).`;
   }
 
   /* --- Información de vacaciones para el PDF --- */
@@ -743,8 +735,9 @@ form.addEventListener('submit', (e) => {
    * 
    * Si ya fue PAGADO → $0
    * Si NO fue pagado:
-   *   - Terminación ≥ 1-oct → COMPLETO (según categoría)
-   *   - Terminación < 1-oct → PROPORCIONAL (desde 12-dic anterior)
+   *   - Terminación ≥ 12-dic → COMPLETO (según categoría, si tiene ≥ 1 año)
+   *   - Terminación < 12-dic → PROPORCIONAL (desde el 12-dic anterior)
+   * La reforma 2026 solo amplía la ventana de pago (1-oct a 20-dic).
    * ========================================================= */
   const aguinaldoPagado = document.querySelector('input[name="aguinaldoPagado"]:checked').value === 'si';
   const catAguTerm = diasAguinaldoPorAntiguedad(anios);
@@ -760,21 +753,20 @@ form.addEventListener('submit', (e) => {
     aguinaldoFraccion = 0;
   } else {
     const termDate = new Date(fechaTerminacion+'T00:00:00');
-    const oct1 = new Date(termDate.getFullYear(), 9, 1);
+    const dic12 = new Date(termDate.getFullYear(), 11, 12);
 
-    if (termDate >= oct1) {
-      // COMPLETO
+    if (termDate >= dic12) {
+      // Llegó al 12-dic: COMPLETO si tiene 1 año o más
       if (anios >= 1) {
         aguinaldo = SBD * catAguTerm;
         aguinaldoFraccion = 1;
         aguinaldoEstado = 'No pagado — COMPLETO';
-        aguinaldoRegla = `Terminación el 1-oct o posterior (Reforma 2026). ${catAguTerm} días completos.`;
+        aguinaldoRegla = `Terminación el 12-dic o posterior. ${catAguTerm} días completos.`;
       } else {
-        // Menos de 1 año: proporcional
         aguinaldoFraccion = Math.min(antiguedadTotal, 1);
         aguinaldo = SBD * catAguTerm * aguinaldoFraccion;
         aguinaldoEstado = 'No pagado — PROPORCIONAL';
-        aguinaldoRegla = `Menos de 1 año de servicio. Proporcional por ${fmtFrac(aguinaldoFraccion)}.`;
+        aguinaldoRegla = `Menos de 1 año de servicio al 12-dic. Proporcional por ${fmtFrac(aguinaldoFraccion)}.`;
       }
     } else {
       // PROPORCIONAL
@@ -786,7 +778,7 @@ form.addEventListener('submit', (e) => {
         aguinaldoFraccion = Math.min((dA.anios*360+dA.meses*30+dA.dias)/360, 1);
         aguinaldo = SBD * catAguTerm * aguinaldoFraccion;
         aguinaldoEstado = 'No pagado — PROPORCIONAL';
-        aguinaldoRegla = `Terminación antes del 1-oct. Desde ${fmtDate(startDate)}.`;
+        aguinaldoRegla = `Terminación antes del 12-dic (Art. 202 CT). Proporcional desde ${fmtDate(startDate)}.`;
       } else {
         aguinaldoFraccion = fraccionAnio;
         aguinaldo = SBD * catAguTerm * fraccionAnio;
@@ -797,7 +789,7 @@ form.addEventListener('submit', (e) => {
   }
 
   /* --- Comisiones total --- */
-  const totalComisiones = comisionesMonto*6;
+  const totalComisiones = 0; // ya incluidas en el salario base; no se suman de nuevo al total
 
   /* =========================================================
    * INDEMNIZACIÓN / PRESTACIÓN POR RENUNCIA
@@ -813,17 +805,18 @@ form.addEventListener('submit', (e) => {
     legalCausa = 'Art. 58 CT';
     exentoNota = 'indemnización y aguinaldo';
 
-    // Aplicar tope de 4 salarios mínimos del sector comercio
-    baseIndemnizacion = Math.min(salarioBase, TOPE_INDEMNIZACION);
-    if (salarioBase > TOPE_INDEMNIZACION) {
+    // Art. 58 CT: ningún salario puede considerarse mayor a 4 veces el salario mínimo DIARIO
+    const baseDiariaIndem = Math.min(SBD, TOPE_DIARIO_DESPIDO);
+    baseIndemnizacion = baseDiariaIndem * 30; // 30 días de salario por año
+    if (SBD > TOPE_DIARIO_DESPIDO) {
       topeAplicado = true;
-      notaCausa = `Tope legal aplicado: 4 × $${SALARIO_MINIMO_COMERCIO.toFixed(2)} = ${fmt.format(TOPE_INDEMNIZACION)} (Art. 58 CT, sector comercio). El salario base (${fmt.format(salarioBase)}) supera el tope.`;
+      notaCausa = `Tope legal aplicado (Art. 58 CT): 4 × $${SALARIO_MINIMO_DIARIO.toFixed(2)} (mínimo diario) × 30 = ${fmt.format(TOPE_INDEMNIZACION)}. El salario base (${fmt.format(salarioBase)}) lo supera.`;
     }
 
-    montoCausa = baseIndemnizacion * anios + baseIndemnizacion * fraccionAnio;
+    montoCausa = baseIndemnizacion * (anios + fraccionAnio);
 
-    // Mínimo legal: 15 días de salario básico
-    const minimo = SBD*15;
+    // Mínimo legal: 15 días de salario básico (también sujeto al tope)
+    const minimo = baseDiariaIndem*15;
     if (montoCausa < minimo) {
       montoCausa = minimo;
       aplicaMinimo = true;
@@ -834,20 +827,21 @@ form.addEventListener('submit', (e) => {
     legalCausa = 'Ley 592 (2014), Arts. 2 y 4';
     exentoNota = 'prestación por renuncia y aguinaldo';
     const reqPreaviso = tipoEmpleado === 'gerente' ? 30 : 15;
-    const cumplePreaviso = preavisoDias >= reqPreaviso;
+    const cumplePreaviso = notificoRenuncia && preavisoDias >= reqPreaviso;
 
     if (!cumpleDosAnios) {
-      notaCausa = `No procede: mínimo 2 años no cumplido (${fmtFrac(antiguedadTotal)} años).`;
+      notaCausa = `No procede la prestación por renuncia: mínimo 2 años no cumplido (${fmtFrac(antiguedadTotal)} años). Las demás prestaciones sí se calculan.`;
+    } else if (!notificoRenuncia) {
+      notaCausa = 'No procede la prestación por renuncia: no se notificó la renuncia por escrito (Ley 592, Art. 2). Las demás prestaciones sí se calculan.';
     } else if (!cumplePreaviso) {
-      notaCausa = `No procede: preaviso de ${reqPreaviso} días requerido, solo ${preavisoDias} dados.`;
+      notaCausa = `No procede la prestación por renuncia: preaviso de ${reqPreaviso} días requerido, solo ${preavisoDias} dados. Las demás prestaciones sí se calculan.`;
     } else {
-      // Ley 592: 15 días de salario básico por año
-      // Tope: 2 × salario mínimo del sector
-      const TOPE_RENUNCIA = SALARIO_MINIMO_COMERCIO * 2;
-      const baseRenuncia = Math.min(SBD * 15, TOPE_RENUNCIA / 30 * 15);
-      montoCausa = baseRenuncia * anios + baseRenuncia * fraccionAnio;
-      if (SBD * 15 > TOPE_RENUNCIA / 30 * 15) {
-        notaCausa = `Tope Ley 592 (Art. 4): 2 × salario mínimo aplicado.`;
+      // Ley 592 Art. 4: 15 días de salario por año; ningún salario mayor a 2 veces el mínimo DIARIO
+      const baseDiariaRen = Math.min(SBD, TOPE_DIARIO_RENUNCIA);
+      baseIndemnizacion = baseDiariaRen * 15;
+      montoCausa = baseIndemnizacion * (anios + fraccionAnio);
+      if (SBD > TOPE_DIARIO_RENUNCIA) {
+        notaCausa = `Tope Ley 592 (Art. 4): 2 × $${SALARIO_MINIMO_DIARIO.toFixed(2)} (mínimo diario) aplicado.`;
       }
     }
   }
@@ -924,12 +918,12 @@ form.addEventListener('submit', (e) => {
   document.getElementById('r-tipoEmpleado').textContent = causa==='renuncia'
     ? (tipoEmpleado==='gerente'?'Gerente/especializado':'Común') : 'No aplica (despido)';
   document.getElementById('r-preaviso').textContent = causa==='renuncia'
-    ? `Notificado: Sí. ${preavisoDias} día(s).` : 'No aplica';
+    ? `Notificado: ${notificoRenuncia?'Sí':'No'}. ${preavisoDias} día(s).` : 'No aplica';
 
   /* --- Desglose --- */
   document.getElementById('r-vacacion').textContent = fmt.format(vacacionProporcional);
   document.getElementById('r-aguinaldo').textContent = fmt.format(aguinaldo);
-  document.getElementById('r-comisiones').textContent = tieneComisiones&&comisionesMonto>0 ? fmt.format(totalComisiones) : '$0.00';
+  document.getElementById('r-comisiones').textContent = tieneComisiones&&comisionesMonto>0 ? 'Incl. en salario base' : '$0.00';
   document.getElementById('r-causa-label').textContent = etiquetaCausa;
   document.getElementById('r-causa-legal').textContent = legalCausa;
   document.getElementById('r-causa').textContent = fmt.format(montoCausa);
@@ -938,12 +932,13 @@ form.addEventListener('submit', (e) => {
   document.getElementById('r-asueto').textContent = fmt.format(montoAsueto);
   document.getElementById('r-descanso').textContent = fmt.format(montoDescanso);
   document.getElementById('r-total').textContent = fmt.format(totalDevengado);
-  document.getElementById('r-nota').textContent = notaCausa;
+  if (salarioBase < SALARIO_MINIMO_COMERCIO) notaCausa += ` Aviso: el salario ingresado es menor al mínimo vigente ($${SALARIO_MINIMO_COMERCIO.toFixed(2)}, comercio/servicios/industria); la ley manda calcular las prestaciones con el mínimo si el salario pactado es menor.`;
+  document.getElementById('r-nota').textContent = notaCausa.trim();
 
   let notaBeneficios = '';
   notaBeneficios += `Vacaciones: ${vacEstado} — ${vacDetalle}. `;
   notaBeneficios += `Aguinaldo: ${aguinaldoEstado} — ${aguinaldoRegla}. `;
-  if (tieneComisiones && comisionesMonto > 0) notaBeneficios += `Comisiones: ${fmt.format(totalComisiones)}. `;
+  if (tieneComisiones && comisionesMonto > 0) notaBeneficios += `Comisiones: promedio ${fmt.format(comisionesMonto)}/mes incluido en el salario base de las prestaciones. `;
   if (diasAsueto > 0) notaBeneficios += `Asuetos: ${diasAsueto} día(s) — ${asuetoDetalle}. `;
   if (diasDescansoInput > 0) notaBeneficios += `Descanso semanal: ${diasDescansoInput} día(s) (exclusivos, no feriados). `;
   if (heDetalles.length > 0) notaBeneficios += `Horas extras: ${heDetalles.join('; ')}.`;
@@ -992,14 +987,14 @@ form.addEventListener('submit', (e) => {
   // Aguinaldo
   setTxt('m-agu-estado', aguinaldoEstado);
   setTxt('m-agu-regla', aguinaldoRegla);
-  setTxt('m-agu-cat', `${catAguTerm} días (${anios<3?'cat. 1':anios<=10?'cat. 2':'cat. 3'})`);
+  setTxt('m-agu-cat', `${catAguTerm} días (${anios<3?'cat. 1':anios<10?'cat. 2':'cat. 3'})`);
   setTxt('m-agu-fraccion2', fmtFrac(aguinaldoFraccion));
   setTxt('m-agu-calc', `${fmt.format(SBD)} × ${catAguTerm}`);
   setTxt('m-agu', fmt.format(aguinaldo));
 
   // Comisiones
-  setTxt('m-com-calc', `${fmt.format(comisionesMonto)} × 6`);
-  setTxt('m-com', tieneComisiones&&comisionesMonto>0 ? fmt.format(totalComisiones) : '$0.00');
+  setTxt('m-com-calc', `${fmt.format(comisionesMonto)} (promedio mensual, ya sumado al salario base)`);
+  setTxt('m-com', tieneComisiones&&comisionesMonto>0 ? 'Incl. en base' : '$0.00');
 
   // Causa
   setTxt('m-causa-nombre', etiquetaCausa);
@@ -1009,20 +1004,21 @@ form.addEventListener('submit', (e) => {
     renDL.style.display='';
     renDL.innerHTML = `
       <dt>Tipo</dt><dd>${tipoEmpleado==='gerente'?'Gerente':'Común'}</dd>
+      <dt>Notificó por escrito</dt><dd>${notificoRenuncia?'Sí':'No'}</dd>
       <dt>Preaviso</dt><dd>${preavisoDias} día(s)</dd>
       <dt>2 años</dt><dd>${cumpleDosAnios?'✓':'✗'} (${fmtFrac(antiguedadTotal)})</dd>`;
   } else {
     renDL.style.display='none';
     renDL.innerHTML='';
   }
-  setTxt('m-causa-requisito', causa==='renuncia'&&!cumpleDosAnios ? 'No procede.' : '');
+  setTxt('m-causa-requisito', causa==='renuncia'&&montoCausa===0 ? 'No procede la prestación por renuncia.' : '');
   let topeTxt = '';
   if (causa === 'despido') {
-    topeTxt = `Tope Art. 58 CT: 4 × $${SALARIO_MINIMO_COMERCIO.toFixed(2)} = ${fmt.format(TOPE_INDEMNIZACION)}. `;
+    topeTxt = `Tope Art. 58 CT: 4 × $${SALARIO_MINIMO_DIARIO.toFixed(2)} × 30 = ${fmt.format(TOPE_INDEMNIZACION)}. `;
     topeTxt += topeAplicado ? `Aplicado (salario ${fmt.format(salarioBase)} > tope).` : 'No aplicado.';
   }
   setTxt('m-causa-tope', topeTxt);
-  setTxt('m-causa-calc', `${fmt.format(baseIndemnizacion || SBD*15)} × (${anios} + ${fmtFrac(fraccionAnio)})`);
+  setTxt('m-causa-calc', `${fmt.format(baseIndemnizacion || (causa==='despido'?SBD*30:SBD*15))} × (${anios} + ${fmtFrac(fraccionAnio)})`);
   setTxt('m-causa-monto', fmt.format(montoCausa));
   setTxt('m-causa-minimo', aplicaMinimo ? `Elevado al mínimo legal de 15 días.` : '');
 

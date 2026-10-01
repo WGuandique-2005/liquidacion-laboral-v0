@@ -290,7 +290,7 @@
           <div class="flex-1">
             <label for="diasDescanso" class="field-label">Días de descanso semanal laborados (solo descanso)</label>
             <input type="number" inputmode="decimal" id="diasDescanso" min="0" step="1" value="0" class="field-input">
-            <p class="field-hint">Solo días que fueron exclusivamente de descanso semanal (no feriados). Art. 194 CT: si un día es feriado Y descanso, solo se paga el recargo de asueto (100%).</p>
+            <p class="field-hint">Solo días que fueron exclusivamente de descanso semanal (no feriados). Art. 194 CT: si un día es feriado Y descanso, corresponde la remuneración del Art. 192 (no se suma el 50%) y el descanso compensatorio.</p>
           </div>
         </div>
       </section>
@@ -382,7 +382,7 @@
             </label>
           </div>
           <p class="field-hint" id="aguinaldo-hint">
-            Si no ha sido pagado: terminación el 1-oct o posterior → aguinaldo COMPLETO; antes del 1-oct → PROPORCIONAL. Reforma Legislativa 23-sep-2026.
+            Si no ha sido pagado: terminación el 12-dic o posterior → aguinaldo COMPLETO; antes del 12-dic → PROPORCIONAL. La reforma del 23-sep-2026 solo amplía la ventana de pago (1-oct a 20-dic).
           </p>
         </div>
       </section>
@@ -469,7 +469,7 @@
             <dd id="r-aguinaldo">—</dd>
           </div>
           <div class="ledger-row" id="row-comisiones">
-            <dt>Comisiones devengadas (6 meses)<span class="legal-ref">Arts. 183 y 199 CT</span></dt>
+            <dt>Comisiones (incluidas en salario base)<span class="legal-ref">Arts. 183 y 199 CT</span></dt>
             <dd id="r-comisiones">—</dd>
           </div>
           <div class="ledger-row">
@@ -607,7 +607,7 @@
                 <div class="mform"><code>Vacación = (SBD × 15 × 1.30) × fracción</code></div>
                 <div class="mcalc"><p class="mexpr">(<span id="m-vac-calc">—</span>) × <span id="m-fraccion2">—</span><span class="meq">=</span><strong id="m-vac">—</strong></p></div>
               </article>
-              <article class="mcard"><header class="mcard-h"><span class="mnum">7</span><h4>Aguinaldo (Reforma 2026)</h4><span class="mlaw">Arts. 196–198 CT · Reforma 23-sep-2026</span></header>
+              <article class="mcard"><header class="mcard-h"><span class="mnum">7</span><h4>Aguinaldo (Reforma 2026)</h4><span class="mlaw">Arts. 196–198 y 202 CT · Reforma 23-sep-2026</span></header>
                 <dl class="mdl"><dt>Estado</dt><dd><span id="m-agu-estado">—</span></dd><dt>Regla</dt><dd><span id="m-agu-regla">—</span></dd><dt>Categoría</dt><dd><span id="m-agu-cat">—</span></dd></dl>
                 <div class="mform"><code>Aguinaldo = SBD × días × fracción</code></div>
                 <div class="mcalc"><p class="mexpr">(<span id="m-agu-calc">—</span>) × <span id="m-agu-fraccion2">—</span><span class="meq">=</span><strong id="m-agu">—</strong></p></div>
@@ -664,10 +664,10 @@
 
           <p class="mfoot">
             <b>Este cálculo es informativo</b>. Verifique con el MTPS y un contador autorizado.<br>
-            <b>Tope indemnización (Art. 58 CT):</b> 4 × salario mínimo del sector comercio ($408.80) = $1,635.20. Se usa el último salario básico mensual pagado.<br>
-            <b>Aguinaldo — Reforma 2026:</b> Decreto aprobado 23-sep-2026. Pago desde 1-oct; terminación ≥ 1-oct = completo; < 1-oct = proporcional.<br>
-            <b>Asueto + descanso (Art. 194 CT):</b> No se acumulan recargos. Si coincide, solo se paga el 100% de asueto.<br>
-            <b>Vacaciones:</b> Arts. 177 a 190 CT. Gozadas y pagadas → $0; gozadas sin pagar → deuda completa; no gozadas → proporcional.<br>
+            <b>Tope indemnización (Art. 58 CT):</b> 4 × salario mínimo diario ($13.44) × 30 = $1,612.80 mensual equivalente (Decreto Ejec. 11/2025, comercio/servicios/industria). <b>Renuncia (Ley 592, Art. 4):</b> 2 × $13.44 × 15 = $403.20 por año.<br>
+            <b>Aguinaldo — Reforma 2026:</b> Decretos 669-673 (23-sep-2026): el pago puede hacerse del 1-oct al 20-dic; el 12-dic sigue siendo la fecha de referencia del cómputo proporcional (terminación antes del 12-dic = proporcional).<br>
+            <b>Asueto + descanso (Art. 194 CT):</b> No se acumulan recargos. Si coincide, se paga la remuneración del Art. 192 (100% de recargo) más el descanso compensatorio.<br>
+            <b>Vacaciones:</b> Arts. 177 a 190 CT. Siempre se paga la proporcional desde el último aniversario; si gozó el período y no se le pagó, se suma además el período completo (15 días + 30%).<br>
             <b>Renuncia:</b> Ley 592 (2014), Arts. 2 y 4.
           </p>
         </div>

@@ -1,8 +1,8 @@
 /**
  * Calculadora de Liquidación Laboral — El Salvador
  * Código de Trabajo (Decreto N° 15, 1972), Ley 592 (2014),
- * Reforma Aguinaldo 23-sep-2026 (Decretos 669-673: amplía la ventana de PAGO a 1-oct/20-dic;
- * el 12-dic sigue siendo la fecha de referencia del cómputo proporcional).
+ * Reforma Aguinaldo 23-sep-2026 (Decretos 669-673). CRITERIO DE LA CALCULADORA:
+ * terminación antes del 1-oct = aguinaldo proporcional; desde el 1-oct = completo.
  *
  * CONVENCIONES:
  * - Mes comercial = 30 días; año comercial = 360 días; jornada = 8 horas.
@@ -489,12 +489,12 @@ function actualizarAguinaldoHint() {
   const termISO = fechaTerminacionInput.value;
   if (!termISO) return;
   const termDate = new Date(termISO+'T00:00:00');
-  const dic12 = new Date(termDate.getFullYear(), 11, 12);
+  const oct1 = new Date(termDate.getFullYear(), 9, 1);
   const hint = document.getElementById('aguinaldo-hint');
-  if (termDate >= dic12) {
-    hint.innerHTML = 'Si no ha sido pagado: terminación el <strong>12-dic o posterior</strong> → aguinaldo <strong>COMPLETO</strong> (si tiene 1 año o más).';
+  if (termDate >= oct1) {
+    hint.innerHTML = 'Si no ha sido pagado: terminación el <strong>1-oct o posterior</strong> → aguinaldo <strong>COMPLETO</strong> (si tiene 1 año o más).';
   } else {
-    hint.innerHTML = 'Si no ha sido pagado: terminación <strong>antes del 12-dic</strong> → aguinaldo <strong>PROPORCIONAL</strong> (Art. 202 CT, reforma 2026: el 12-dic es la fecha de referencia).';
+    hint.innerHTML = 'Si no ha sido pagado: terminación <strong>antes del 1-oct</strong> → aguinaldo <strong>PROPORCIONAL</strong>.';
   }
 }
 fechaTerminacionInput.addEventListener('change', actualizarAguinaldoHint);
@@ -735,9 +735,8 @@ form.addEventListener('submit', (e) => {
    * 
    * Si ya fue PAGADO → $0
    * Si NO fue pagado:
-   *   - Terminación ≥ 12-dic → COMPLETO (según categoría, si tiene ≥ 1 año)
-   *   - Terminación < 12-dic → PROPORCIONAL (desde el 12-dic anterior)
-   * La reforma 2026 solo amplía la ventana de pago (1-oct a 20-dic).
+   *   - Terminación ≥ 1-oct → COMPLETO (según categoría, si tiene ≥ 1 año)
+   *   - Terminación < 1-oct → PROPORCIONAL (desde el 12-dic anterior)
    * ========================================================= */
   const aguinaldoPagado = document.querySelector('input[name="aguinaldoPagado"]:checked').value === 'si';
   const catAguTerm = diasAguinaldoPorAntiguedad(anios);
@@ -753,20 +752,20 @@ form.addEventListener('submit', (e) => {
     aguinaldoFraccion = 0;
   } else {
     const termDate = new Date(fechaTerminacion+'T00:00:00');
-    const dic12 = new Date(termDate.getFullYear(), 11, 12);
+    const oct1 = new Date(termDate.getFullYear(), 9, 1);
 
-    if (termDate >= dic12) {
-      // Llegó al 12-dic: COMPLETO si tiene 1 año o más
+    if (termDate >= oct1) {
+      // Desde el 1-oct: COMPLETO si tiene 1 año o más
       if (anios >= 1) {
         aguinaldo = SBD * catAguTerm;
         aguinaldoFraccion = 1;
         aguinaldoEstado = 'No pagado — COMPLETO';
-        aguinaldoRegla = `Terminación el 12-dic o posterior. ${catAguTerm} días completos.`;
+        aguinaldoRegla = `Terminación el 1-oct o posterior (Reforma 2026). ${catAguTerm} días completos.`;
       } else {
         aguinaldoFraccion = Math.min(antiguedadTotal, 1);
         aguinaldo = SBD * catAguTerm * aguinaldoFraccion;
         aguinaldoEstado = 'No pagado — PROPORCIONAL';
-        aguinaldoRegla = `Menos de 1 año de servicio al 12-dic. Proporcional por ${fmtFrac(aguinaldoFraccion)}.`;
+        aguinaldoRegla = `Menos de 1 año de servicio. Proporcional por ${fmtFrac(aguinaldoFraccion)}.`;
       }
     } else {
       // PROPORCIONAL
@@ -778,7 +777,7 @@ form.addEventListener('submit', (e) => {
         aguinaldoFraccion = Math.min((dA.anios*360+dA.meses*30+dA.dias)/360, 1);
         aguinaldo = SBD * catAguTerm * aguinaldoFraccion;
         aguinaldoEstado = 'No pagado — PROPORCIONAL';
-        aguinaldoRegla = `Terminación antes del 12-dic (Art. 202 CT). Proporcional desde ${fmtDate(startDate)}.`;
+        aguinaldoRegla = `Terminación antes del 1-oct. Proporcional desde ${fmtDate(startDate)}.`;
       } else {
         aguinaldoFraccion = fraccionAnio;
         aguinaldo = SBD * catAguTerm * fraccionAnio;

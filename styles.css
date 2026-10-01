@@ -64,6 +64,7 @@ body{background:var(--slate);color:var(--ink);font-family:"IBM Plex Sans",sans-s
 .field-input:focus{border-color:var(--purple-2);box-shadow:0 0 0 3px rgba(59,30,143,.15);outline:none}
 .field-input:disabled{background:#eceef3;color:#9a9fae;cursor:not-allowed}
 .field-input:read-only{background:var(--soft);border-color:var(--line);color:var(--muted);cursor:default}
+.field-input.is-invalid{border-color:var(--rose);box-shadow:0 0 0 3px rgba(140,47,57,.15)}
 select.field-input{appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6472' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right .75rem center;background-size:1em;padding-right:2.5rem;cursor:pointer}
 .field-hint{font-size:.75rem;color:var(--muted);margin-top:.3rem;line-height:1.45}
 .currency-prefix{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9375rem;pointer-events:none}

@@ -141,6 +141,59 @@ const aniosInput = document.getElementById('anios');
 const mesesInput = document.getElementById('meses');
 const mesesHint = document.getElementById('meses-hint');
 const fechaTermHint = document.getElementById('fecha-term-hint');
+const nombreTrabajadorInput = document.getElementById('nombreTrabajador');
+const patronoInput = document.getElementById('patrono');
+const duiInput = document.getElementById('dui');
+const cargoInput = document.getElementById('cargo');
+const DUI_PATTERN = /^\d{8}-\d$/;
+const NOMBRE_PATTERN = /^[\p{L}][\p{L}\s.'’\-]*$/u;
+const TEXTO_GENERAL_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N}\s.,#&/()'’\-]*$/u;
+
+function normalizarEspacios(valor) {
+  return valor.trim().replace(/\s+/g, ' ');
+}
+
+function marcarCampoInvalido(campo) {
+  campo?.classList.add('is-invalid');
+}
+
+function limpiarCamposInvalidos() {
+  document.querySelectorAll('.field-input.is-invalid').forEach(campo => campo.classList.remove('is-invalid'));
+}
+
+function antiguedadEnDiasComerciales() {
+  const antiguedad = diffFechas(fechaIngresoInput.value, fechaTerminacionInput.value);
+  return antiguedad ? antiguedad.anios * 360 + antiguedad.meses * 30 + antiguedad.dias : 0;
+}
+
+function fechaMasDias(iso, dias) {
+  const fecha = new Date(`${iso}T00:00:00`);
+  fecha.setDate(fecha.getDate() + dias);
+  return toISO(fecha);
+}
+
+function rangoIncluyePagoAguinaldo(ingresoISO, terminacionISO) {
+  if (!ingresoISO || !terminacionISO) return false;
+  const ingreso = new Date(`${ingresoISO}T00:00:00`);
+  const terminacion = new Date(`${terminacionISO}T00:00:00`);
+  for (let anio = ingreso.getFullYear(); anio <= terminacion.getFullYear(); anio++) {
+    // La calculadora utiliza el 1 de octubre como inicio del período de pago.
+    const inicioPago = new Date(anio, 9, 1);
+    if (inicioPago >= ingreso && inicioPago <= terminacion) return true;
+  }
+  return false;
+}
+
+duiInput.addEventListener('input', () => {
+  const digitos = duiInput.value.replace(/\D/g, '').slice(0, 9);
+  duiInput.value = digitos.length > 8 ? `${digitos.slice(0, 8)}-${digitos.slice(8)}` : digitos;
+  duiInput.classList.remove('is-invalid');
+});
+
+[nombreTrabajadorInput, patronoInput, cargoInput].forEach(campo => {
+  campo.addEventListener('input', () => campo.classList.remove('is-invalid'));
+  campo.addEventListener('blur', () => { campo.value = normalizarEspacios(campo.value); });
+});
 
 /* =========================================================
  * VALIDACIÓN Y SINCRONIZACIÓN DE FECHAS
@@ -567,23 +620,63 @@ function textoTramoISR(base){
  * ========================================================= */
 function validarCamposCompletos() {
   const errores = [];
+  limpiarCamposInvalidos();
+
+  // Datos de identificación
+  const nombre = normalizarEspacios(nombreTrabajadorInput.value);
+  const patrono = normalizarEspacios(patronoInput.value);
+  const cargo = normalizarEspacios(cargoInput.value);
+  if (nombre.length < 3 || !NOMBRE_PATTERN.test(nombre)) {
+    errores.push('Ingrese el nombre completo de la persona trabajadora, usando solo letras y espacios.');
+    marcarCampoInvalido(nombreTrabajadorInput);
+  }
+  if (patrono.length < 2 || !TEXTO_GENERAL_PATTERN.test(patrono)) {
+    errores.push('Ingrese un patrono o empresa válido.');
+    marcarCampoInvalido(patronoInput);
+  }
+  if (!DUI_PATTERN.test(duiInput.value)) {
+    errores.push('El DUI debe tener el formato 00000000-0.');
+    marcarCampoInvalido(duiInput);
+  }
+  if (cargo.length < 2 || !TEXTO_GENERAL_PATTERN.test(cargo)) {
+    errores.push('Ingrese un cargo desempeñado válido.');
+    marcarCampoInvalido(cargoInput);
+  }
 
   // Fechas básicas
-  if (!fechaIngresoInput.value) errores.push('La Fecha de ingreso es obligatoria.');
-  if (!fechaTerminacionInput.value) errores.push('La Fecha de terminación es obligatoria.');
+  if (!fechaIngresoInput.value) {
+    errores.push('La Fecha de ingreso es obligatoria.');
+    marcarCampoInvalido(fechaIngresoInput);
+  }
+  if (!fechaTerminacionInput.value) {
+    errores.push('La Fecha de terminación es obligatoria.');
+    marcarCampoInvalido(fechaTerminacionInput);
+  }
 
   const salario = parseFloat(document.getElementById('salario').value);
-  if (!salario || salario <= 0) errores.push('El Ingreso mensual debe ser mayor a $0.');
+  if (!Number.isFinite(salario) || salario <= 0) {
+    errores.push('El Ingreso mensual debe ser mayor a $0.');
+    marcarCampoInvalido(document.getElementById('salario'));
+  }
 
   // Comisiones
   const tieneComisiones = document.querySelector('input[name="tieneComisiones"]:checked')?.value === 'si';
   if (tieneComisiones) {
     const monto = parseFloat(document.getElementById('comisionesMonto').value);
-    if (isNaN(monto) || monto < 0) errores.push('Si tiene comisiones, debe ingresar el promedio mensual.');
+    if (!Number.isFinite(monto) || monto <= 0) {
+      errores.push('Si tiene comisiones, ingrese un promedio mensual mayor que $0.');
+      marcarCampoInvalido(document.getElementById('comisionesMonto'));
+    }
   }
 
-  // Renuncia: NO se bloquea el cálculo; si no cumple requisitos (Ley 592) la prestación
-  // por renuncia queda en $0 y se explica, pero vacación, aguinaldo, etc. se siguen calculando.
+  // Renuncia: los requisitos legales se muestran en el resultado; si se indicó que notificó,
+  // el dato de preaviso es obligatorio para poder evaluar la prestación.
+  const causa = document.querySelector('input[name="causa"]:checked')?.value;
+  const notifico = document.querySelector('input[name="notificoRenuncia"]:checked')?.value === 'si';
+  if (causa === 'renuncia' && notifico && preavisoDiasInput.value === '') {
+    errores.push('Si notificó la renuncia, ingrese los días de anticipación del aviso escrito.');
+    marcarCampoInvalido(preavisoDiasInput);
+  }
 
   // Horas extras
   const tieneHE = document.querySelector('input[name="tieneHorasExtras"]:checked')?.value === 'si';
@@ -598,8 +691,14 @@ function validarCamposCompletos() {
         const fin = entry.querySelector('[data-he="fin"]').value;
         if (!fecha || !inicio || !fin) {
           errores.push(`Horas extras — entrada ${idx+1}: complete fecha, hora inicio y hora fin.`);
+          entry.querySelectorAll('input').forEach(marcarCampoInvalido);
         } else if (fecha < fechaIngresoInput.value || fecha > fechaTerminacionInput.value) {
           errores.push(`Horas extras — entrada ${idx+1}: la fecha debe estar entre el ingreso y la terminación.`);
+          marcarCampoInvalido(entry.querySelector('[data-he="fecha"]'));
+        } else if (inicio === fin) {
+          errores.push(`Horas extras — entrada ${idx+1}: la hora de inicio y fin no pueden ser iguales.`);
+          marcarCampoInvalido(entry.querySelector('[data-he="inicio"]'));
+          marcarCampoInvalido(entry.querySelector('[data-he="fin"]'));
         }
       });
     }
@@ -607,18 +706,40 @@ function validarCamposCompletos() {
 
   // Vacaciones
   const tomoVac = document.querySelector('input[name="tomoVacaciones"]:checked')?.value === 'si';
+  const antiguedadCorta = antiguedadEnDiasComerciales() < 360;
   if (tomoVac) {
+    if (antiguedadCorta) {
+      errores.push('No puede registrar vacaciones gozadas: la antigüedad es menor de un año.');
+    }
+    if (!document.querySelector('input[name="vacacionesPagadas"]:checked')) {
+      errores.push('Indique si las vacaciones gozadas fueron pagadas.');
+    }
     const vac1Inicio = vac1InicioInput.value;
-    if (!vac1Inicio) errores.push('Si tomó vacaciones, ingrese la fecha de inicio del primer período.');
+    const numPeriodos = document.getElementById('vacPeriodos').value;
+    const diasPrimerPeriodo = numPeriodos === '1' ? 15 : 5;
+    if (!vac1Inicio) {
+      errores.push('Si tomó vacaciones, ingrese la fecha de inicio del primer período.');
+      marcarCampoInvalido(vac1InicioInput);
+    }
     else if (vac1Inicio < fechaIngresoInput.value || vac1Inicio > fechaTerminacionInput.value) {
       errores.push('La fecha de vacaciones debe estar entre el ingreso y la terminación.');
+      marcarCampoInvalido(vac1InicioInput);
+    } else if (fechaMasDias(vac1Inicio, diasPrimerPeriodo - 1) > fechaTerminacionInput.value) {
+      errores.push('El primer período de vacaciones excede la fecha de terminación.');
+      marcarCampoInvalido(vac1InicioInput);
     }
-    const numPeriodos = document.getElementById('vacPeriodos').value;
     if (numPeriodos === '2') {
       const vac2Inicio = vac2InicioInput.value;
-      if (!vac2Inicio) errores.push('Si fueron 2 períodos, ingrese la fecha de inicio del segundo período.');
+      if (!vac2Inicio) {
+        errores.push('Si fueron 2 períodos, ingrese la fecha de inicio del segundo período.');
+        marcarCampoInvalido(vac2InicioInput);
+      }
       else if (vac2Inicio < fechaIngresoInput.value || vac2Inicio > fechaTerminacionInput.value) {
         errores.push('La fecha del segundo período debe estar entre el ingreso y la terminación.');
+        marcarCampoInvalido(vac2InicioInput);
+      } else if (fechaMasDias(vac2Inicio, 4) > fechaTerminacionInput.value) {
+        errores.push('El segundo período de vacaciones excede la fecha de terminación.');
+        marcarCampoInvalido(vac2InicioInput);
       }
     }
   }
@@ -627,6 +748,13 @@ function validarCamposCompletos() {
   const trabajoAsueto = document.querySelector('input[name="trabajoAsueto"]:checked')?.value === 'si';
   if (trabajoAsueto && feriadosSeleccionados.length === 0) {
     errores.push('Si trabajó en días de asueto, seleccione al menos un feriado.');
+  }
+
+  // Un período que no alcanzó una fecha anual de pago no puede declarar que el
+  // aguinaldo ya fue recibido; el aguinaldo proporcional pendiente se calcula aparte.
+  const aguinaldoPagado = document.querySelector('input[name="aguinaldoPagado"]:checked')?.value === 'si';
+  if (aguinaldoPagado && !rangoIncluyePagoAguinaldo(fechaIngresoInput.value, fechaTerminacionInput.value)) {
+    errores.push('No puede marcar el aguinaldo como pagado: el período trabajado no incluye una fecha de pago de aguinaldo.');
   }
 
   return errores;
@@ -646,9 +774,10 @@ form.addEventListener('submit', (e) => {
   }
 
   /* --- I. Datos --- */
-  const nombreTrabajador = document.getElementById('nombreTrabajador').value.trim();
-  const patrono = document.getElementById('patrono').value.trim();
-  const cargo = document.getElementById('cargo').value.trim();
+  const nombreTrabajador = normalizarEspacios(nombreTrabajadorInput.value);
+  const patrono = normalizarEspacios(patronoInput.value);
+  const dui = duiInput.value;
+  const cargo = normalizarEspacios(cargoInput.value);
   const fechaIngreso = fechaIngresoInput.value;
   const fechaTerminacion = fechaTerminacionInput.value;
   const salario = parseFloat(document.getElementById('salario').value);
@@ -848,9 +977,10 @@ form.addEventListener('submit', (e) => {
   /* =========================================================
    * HORAS EXTRAS — Recolectar de entradas
    * ========================================================= */
+  const tieneHE = document.querySelector('input[name="tieneHorasExtras"]:checked').value === 'si';
   let heDiurnas = 0, heNocturnas = 0;
   let heDetalles = [];
-  document.querySelectorAll('#he-entries .he-entry').forEach(entry => {
+  if (tieneHE) document.querySelectorAll('#he-entries .he-entry').forEach(entry => {
     const fecha = entry.querySelector('[data-he="fecha"]').value;
     const inicio = entry.querySelector('[data-he="inicio"]').value;
     const fin = entry.querySelector('[data-he="fin"]').value;
@@ -870,7 +1000,8 @@ form.addEventListener('submit', (e) => {
    * Art. 194 CT: si un día es asueto Y descanso, SOLO se paga el 100% de asueto
    * NO se suman 50% + 100%
    * ========================================================= */
-  const diasAsueto = feriadosSeleccionados.length;
+  const trabajoAsueto = document.querySelector('input[name="trabajoAsueto"]:checked').value === 'si';
+  const diasAsueto = trabajoAsueto ? feriadosSeleccionados.length : 0;
   const montoAsueto = SBD * 2 * diasAsueto; // 100% recargo = salario × 2
   const asuetoDetalle = feriadosSeleccionados.map(f=>f.nombre).join(', ');
 
@@ -900,6 +1031,7 @@ form.addEventListener('submit', (e) => {
    * ========================================================= */
   document.getElementById('r-nombreTrabajador').textContent = nombreTrabajador || '—';
   document.getElementById('r-patrono').textContent = patrono || '—';
+  document.getElementById('r-dui').textContent = dui;
   document.getElementById('r-cargo').textContent = cargo || '—';
   document.getElementById('r-salario').textContent = fmt.format(salario);
   document.getElementById('r-fechaIngreso').textContent = fmtDate(fechaIngreso);

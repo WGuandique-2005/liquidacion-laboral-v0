@@ -195,6 +195,23 @@ duiInput.addEventListener('input', () => {
   campo.addEventListener('blur', () => { campo.value = normalizarEspacios(campo.value); });
 });
 
+// Los montos y cantidades se ingresan como valores positivos: no se admiten
+// signos (+/-) ni notación exponencial (e/E), incluso al pegar contenido.
+document.querySelectorAll('input[type="number"]:not([readonly])').forEach(campo => {
+  campo.addEventListener('keydown', (evento) => {
+    if (['-', '+', 'e', 'E'].includes(evento.key)) evento.preventDefault();
+  });
+  campo.addEventListener('beforeinput', (evento) => {
+    if (evento.data && /[-+eE]/.test(evento.data)) evento.preventDefault();
+  });
+  campo.addEventListener('input', () => {
+    if (campo.value && (!Number.isFinite(Number(campo.value)) || Number(campo.value) < 0)) {
+      campo.value = '';
+    }
+    campo.classList.remove('is-invalid');
+  });
+});
+
 /* =========================================================
  * VALIDACIÓN Y SINCRONIZACIÓN DE FECHAS
  * ========================================================= */
@@ -676,6 +693,9 @@ function validarCamposCompletos() {
   if (causa === 'renuncia' && notifico && preavisoDiasInput.value === '') {
     errores.push('Si notificó la renuncia, ingrese los días de anticipación del aviso escrito.');
     marcarCampoInvalido(preavisoDiasInput);
+  } else if (preavisoDiasInput.value !== '' && (!Number.isInteger(Number(preavisoDiasInput.value)) || Number(preavisoDiasInput.value) < 0)) {
+    errores.push('Los días de preaviso deben ser un número entero igual o mayor que cero.');
+    marcarCampoInvalido(preavisoDiasInput);
   }
 
   // Horas extras
@@ -748,6 +768,13 @@ function validarCamposCompletos() {
   const trabajoAsueto = document.querySelector('input[name="trabajoAsueto"]:checked')?.value === 'si';
   if (trabajoAsueto && feriadosSeleccionados.length === 0) {
     errores.push('Si trabajó en días de asueto, seleccione al menos un feriado.');
+  }
+
+  const diasDescansoInput = document.getElementById('diasDescanso');
+  const diasDescanso = Number(diasDescansoInput.value);
+  if (!Number.isInteger(diasDescanso) || diasDescanso < 0) {
+    errores.push('Los días de descanso laborados deben ser un número entero igual o mayor que cero.');
+    marcarCampoInvalido(diasDescansoInput);
   }
 
   // Un período que no alcanzó una fecha anual de pago no puede declarar que el
